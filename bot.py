@@ -196,6 +196,101 @@ class FarmBot(commands.Bot):
         print(f"[DISCORD] Bot online com sucesso como: {self.user} (ID: {self.user.id})", flush=True)
 
 bot = FarmBot()
+# =============================================================================
+# NOVO: MODAL MANUAL (DIGITA TUDO DIRETO NO FORMULÁRIO - SEM EMOJI)
+# =============================================================================
+class RegistrarManualModal(discord.ui.Modal):
+    # Campo 1: Nome do Item Escrito Manualmente
+    item_manual = discord.ui.TextInput(
+        label="Nome do Item Farmado",
+        placeholder="Ex: Ferro, Sabão, Metanfetamina...",
+        style=discord.TextStyle.short,
+        min_length=2,
+        max_length=50,
+        required=True
+    )
+    
+    # Campo 2: Quantidade
+    quantidade = discord.ui.TextInput(
+        label="Quantidade Entregue",
+        placeholder="Ex: 100",
+        style=discord.TextStyle.short,
+        min_length=1,
+        max_length=10,
+        required=True
+    )
+    
+    # Campo 3: Observações
+    observacoes = discord.ui.TextInput(
+        label="Observações (Opcional)",
+        placeholder="Ex: Entregue no cofre principal",
+        style=discord.TextStyle.paragraph,
+        max_length=300,
+        required=False
+    )
+
+    def __init__(self, bot_instance: commands.Bot, canal_id: int) -> None:
+        super().__init__(title="📋 Registro Manual de Farm")
+        self.bot = bot_instance
+        self.canal_id = canal_id
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        try:
+            canal = self.bot.get_channel(self.canal_id)
+            if not canal:
+                canal = await self.bot.fetch_channel(self.canal_id)
+            
+            # Capitaliza a primeira letra do item para manter o padrão na soma do /consolidar
+            item_digitado = self.item_manual.value.strip().capitalize()
+            qtd_digitada = self.quantidade.value.strip()
+            obs_texto = self.observacoes.value.strip() if self.observacoes.value else "Nenhuma observação informada."
+
+            # TEXTO FORMATADO EXATAMENTE IGUAL PARA MANTER O /CONSOLIDAR FUNCIONANDO
+            texto_formatado = (
+                f"Registro formalizado pelo membro {interaction.user.mention}.\n\n"
+                f"**Item Farmado:** _{item_digitado}_\n"
+                f"**Quantidade:** _{qtd_digitada} un._\n"
+                f"📅 **Horário:** <t:{int(interaction.created_at.timestamp())}:F>\n\n"
+                f"📝 **Observações:**\n_{obs_texto}_"
+            )
+
+            embed = discord.Embed(
+                title="📦 Novo Registro de Farm Recebido",
+                description=texto_formatado,
+                color=discord.Color.dark_green(), # Cor ligeiramente diferente para diferenciar
+                timestamp=interaction.created_at
+            )
+
+            avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
+            embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
+            embed.set_footer(text="FarmBot • Sistema de Gestão de Farm")
+
+            await canal.send(embed=embed)
+
+            await interaction.followup.send(
+                f"✅ **Seu registro manual foi postado com sucesso!**\n"
+                f"• Item: **{item_digitado}**\n"
+                f"• Quantidade: **{qtd_digitada} un.**\n"
+                f"• Canal: {canal.mention}", 
+                ephemeral=True
+            )
+            print(f"[MANUAL] Farm de {item_digitado} postado em #{canal.name}", flush=True)
+        except discord.Forbidden:
+            await interaction.followup.send("❌ **Erro:** O bot não tem permissão para postar neste canal.", ephemeral=True)
+        except Exception as e:
+            traceback.print_exc()
+            await interaction.followup.send(f"❌ Erro inesperado: {str(e)}", ephemeral=True)
+
+# =============================================================================
+# COMANDO SLASH /registrar
+# =============================================================================
+@bot.tree.command(name="registrar", description="Abre o formulário manual para digitar o item e a quantidade.")
+async def registrar(interaction: discord.Interaction) -> None:
+    # Como Modals diretos não aceitam mensagens normais antes, chamamos o modal imediatamente!
+    modal = RegistrarManualModal(bot_instance=bot, canal_id=interaction.channel_id)
+    await interaction.response.send_modal(modal)
+
 #==============================================
 #novo comando Consolidar
 #===============================================
