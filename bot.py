@@ -190,7 +190,7 @@ class FarmBot(commands.Bot):
 
 bot = FarmBot()
 #==============================================
-#novo comando
+#novo comando Consolidar
 #===============================================
 
 @bot.tree.command(name="consolidar", description="Lê o histórico do canal e soma o total entregue por item.")
@@ -252,7 +252,7 @@ async def consolidar(interaction: discord.Interaction) -> None:
             color=discord.Color.blue(),
             timestamp=interaction.created_at
         )
-        embed_resultado.set_footer(text="FarmBot • Balanço Automatizado")
+        embed_resultado.set_footer(text="Estoquista • Balanço Automatizado")
 
         await interaction.followup.send(embed=embed_resultado)
 
