@@ -194,11 +194,10 @@ bot = FarmBot()
 #===============================================
 
 @bot.tree.command(name="consolidar", description="Lê o histórico do canal e soma o total entregue por item.")
-@app_commands.default_permissions(administrator=True) # Opcional: Apenas administradores podem rodar
+@app_commands.default_permissions(administrator=True)
 async def consolidar(interaction: discord.Interaction) -> None:
-    await interaction.response.defer(ephemeral=False) # Dá tempo ao bot para ler o histórico sem travar
+    await interaction.response.defer(ephemeral=False)
     
-    # Dicionário para acumular os totais por item
     totais = {
         "Ferro": 0,
         "Sabão": 0,
@@ -206,29 +205,24 @@ async def consolidar(interaction: discord.Interaction) -> None:
         "Placa de Colete": 0
     }
     
-    # Expressões regulares para capturar os dados dentro da descrição da embed
-    # Captura o item que está entre os underscores: _Nome_
     regex_item = r"\*\*Item Farmado:\*\* _([^_]+)_"
-    # Captura apenas os números antes de " un._"
     regex_qtd = r"\*\*Quantidade:\*\* _(\d+)\s*un\._"
     
     mensagens_analisadas = 0
     registros_encontrados = 0
 
     try:
-        # Varre as últimas 500 mensagens do canal atual
         async for mensagem in interaction.channel.history(limit=500):
             mensagens_analisadas += 1
             
-            # Verifica se a mensagem foi enviada por um bot e possui embeds
-            # VEJA A CORREÇÃO AQUI: Removemos o ":=" de dentro do "for"
             if mensagem.author.bot and mensagem.embeds:
-                message_embeds = mensagem.embeds  # Atribuição normal
-                for embed in message_embeds:       # Loop limpo
-                    # Verifica se é a embed de registro de farm pelo título
+                message_embeds = mensagem.embeds
+                for embed in message_embeds:
+                    # CORREÇÃO AQUI: Garante que a embed tem o título correto e possui descrição
                     if embed.title == "📦 Novo Registro de Farm Recebido" and embed.description:
-
+                        desc = embed.description
                         
+                        # O localizador RE agora roda estritamente seguro aqui dentro
                         match_item = re.search(regex_item, desc)
                         match_qtd = re.search(regex_qtd, desc)
                         
@@ -236,16 +230,13 @@ async def consolidar(interaction: discord.Interaction) -> None:
                             item = match_item.group(1).strip()
                             qtd = int(match_qtd.group(1))
                             
-                            # Se o item estiver no nosso dicionário, soma a quantidade
                             if item in totais:
                                 totais[item] += qtd
                                 registros_encontrados += 1
                             else:
-                                # Caso tenha um item que não criamos no dicionário padrão, adiciona dinamicamente
                                 totais[item] = totais.get(item, 0) + qtd
                                 registros_encontrados += 1
 
-        # Montagem do relatório visual limpo
         icones = {"Ferro": "⛏️", "Sabão": "🧼", "Tecido": "🧵", "Placa de Colete": "🛡️"}
         
         texto_relatorio = "📊 **Fechamento de Estoque — Total por Item**\n"
@@ -270,6 +261,7 @@ async def consolidar(interaction: discord.Interaction) -> None:
     except Exception as e:
         traceback.print_exc()
         await interaction.followup.send(f"❌ Erro ao consolidar dados: {str(e)}", ephemeral=True)
+
 
 # =============================================================================
 # 6. COMANDO SLASH /farmar (ALTERADO: CAPTURA O CANAL ATUAL)
