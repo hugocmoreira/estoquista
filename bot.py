@@ -1,4 +1,5 @@
 import os
+import re  # Certifique-se de que "import re" está no topo do seu arquivo se for usar de forma isolada, ou apenas adicione aqui.
 import sys
 import traceback
 import threading
@@ -191,8 +192,7 @@ bot = FarmBot()
 #==============================================
 #novo comando
 #===============================================
-import re  # Certifique-se de que "import re" está no topo do seu arquivo se for usar de forma isolada, ou apenas adicione aqui.
-
+#import re  # Certifique-se de que "import re" está no topo do seu arquivo se for usar de forma isolada, ou apenas adicione aqui.
 @bot.tree.command(name="consolidar", description="Lê o histórico do canal e soma o total entregue por item.")
 @app_commands.default_permissions(administrator=True) # Opcional: Apenas administradores podem rodar
 async def consolidar(interaction: discord.Interaction) -> None:
