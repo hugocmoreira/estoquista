@@ -221,11 +221,13 @@ async def consolidar(interaction: discord.Interaction) -> None:
             mensagens_analisadas += 1
             
             # Verifica se a mensagem foi enviada por um bot e possui embeds
+            # VEJA A CORREÇÃO AQUI: Removemos o ":=" de dentro do "for"
             if mensagem.author.bot and mensagem.embeds:
-                for embed in message_embeds := mensagem.embeds:
+                message_embeds = mensagem.embeds  # Atribuição normal
+                for embed in message_embeds:       # Loop limpo
                     # Verifica se é a embed de registro de farm pelo título
                     if embed.title == "📦 Novo Registro de Farm Recebido" and embed.description:
-                        desc = embed.description
+
                         
                         match_item = re.search(regex_item, desc)
                         match_qtd = re.search(regex_qtd, desc)
