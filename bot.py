@@ -145,7 +145,7 @@ class FarmSelectView(discord.ui.View):
             discord.SelectOption(label="Placa de Colete", description="Placas balísticas de proteção", emoji="🛡️", value="Placa de Colete"),
         ]
     )
-       async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select) -> None:
+    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select) -> None:
         item_escolhido = select.values[0]
         icones = {"Ferro": "⛏️", "Sabão": "🧼", "Tecido": "🧵", "Placa de Colete": "🛡️"}
         emoji = icones.get(item_escolhido, "📦")
