@@ -85,8 +85,8 @@ class FarmModal(discord.ui.Modal):
             texto_formatado = (
                 f"Registro formalizado pelo membro {interaction.user.mention}.\n\n"
                 f"{self.emoji_item} **Item Farmado:** _{self.item_escolhido}_\n"
-                f"🛒 **Quantidade:** _{qtd_digitada} un._\n"
-                f"📅 **Horário:** <t:{int(interaction.created_at.timestamp())}:F>\n\n"
+                f"🛒 **Quantidade:** _{qtd_digitada} un._\n\n"
+                f"📅 **Data/Hora:** <t:{int(interaction.created_at.timestamp())}:F>\n\n"
                 f"📝 **Observações:**\n_{obs_texto}_"
             )
 
