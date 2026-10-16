@@ -188,6 +188,86 @@ class FarmBot(commands.Bot):
         print(f"[DISCORD] Bot online com sucesso como: {self.user} (ID: {self.user.id})", flush=True)
 
 bot = FarmBot()
+#==============================================
+#novo comando
+#===============================================
+import re  # Certifique-se de que "import re" está no topo do seu arquivo se for usar de forma isolada, ou apenas adicione aqui.
+
+@bot.tree.command(name="consolidar", description="Lê o histórico do canal e soma o total entregue por item.")
+@app_commands.default_permissions(administrator=True) # Opcional: Apenas administradores podem rodar
+async def consolidar(interaction: discord.Interaction) -> None:
+    await interaction.response.defer(ephemeral=False) # Dá tempo ao bot para ler o histórico sem travar
+    
+    # Dicionário para acumular os totais por item
+    totais = {
+        "Ferro": 0,
+        "Sabão": 0,
+        "Tecido": 0,
+        "Placa de Colete": 0
+    }
+    
+    # Expressões regulares para capturar os dados dentro da descrição da embed
+    # Captura o item que está entre os underscores: _Nome_
+    regex_item = r"\*\*Item Farmado:\*\* _([^_]+)_"
+    # Captura apenas os números antes de " un._"
+    regex_qtd = r"\*\*Quantidade:\*\* _(\d+)\s*un\._"
+    
+    mensagens_analisadas = 0
+    registros_encontrados = 0
+
+    try:
+        # Varre as últimas 500 mensagens do canal atual
+        async for mensagem in interaction.channel.history(limit=500):
+            mensagens_analisadas += 1
+            
+            # Verifica se a mensagem foi enviada por um bot e possui embeds
+            if mensagem.author.bot and mensagem.embeds:
+                for embed in message_embeds := mensagem.embeds:
+                    # Verifica se é a embed de registro de farm pelo título
+                    if embed.title == "📦 Novo Registro de Farm Recebido" and embed.description:
+                        desc = embed.description
+                        
+                        match_item = re.search(regex_item, desc)
+                        match_qtd = re.search(regex_qtd, desc)
+                        
+                        if match_item and match_qtd:
+                            item = match_item.group(1).strip()
+                            qtd = int(match_qtd.group(1))
+                            
+                            # Se o item estiver no nosso dicionário, soma a quantidade
+                            if item in totais:
+                                totais[item] += qtd
+                                registros_encontrados += 1
+                            else:
+                                # Caso tenha um item que não criamos no dicionário padrão, adiciona dinamicamente
+                                totais[item] = totais.get(item, 0) + qtd
+                                registros_encontrados += 1
+
+        # Montagem do relatório visual limpo
+        icones = {"Ferro": "⛏️", "Sabão": "🧼", "Tecido": "🧵", "Placa de Colete": "🛡️"}
+        
+        texto_relatorio = "📊 **Fechamento de Estoque — Total por Item**\n"
+        texto_relatorio += f"_Analisadas {mensagens_analisadas} mensagens. {registros_encontrados} registros de farm contabilizados._\n\n"
+        
+        for item, total in totais.items():
+            emoji = icones.get(item, "📦")
+            texto_relatorio += f"{emoji} **{item}:** _{total} un._\n"
+
+        embed_resultado = discord.Embed(
+            title="✅ Consolidação de Farm Concluída",
+            description=texto_relatorio,
+            color=discord.Color.blue(),
+            timestamp=interaction.created_at
+        )
+        embed_resultado.set_footer(text="FarmBot • Balanço Automatizado")
+
+        await interaction.followup.send(embed=embed_resultado)
+
+    except discord.Forbidden:
+        await interaction.followup.send("❌ **Erro:** O bot precisa da permissão 'Ver Histórico de Mensagens' para ler este canal.", ephemeral=True)
+    except Exception as e:
+        traceback.print_exc()
+        await interaction.followup.send(f"❌ Erro ao consolidar dados: {str(e)}", ephemeral=True)
 
 # =============================================================================
 # 6. COMANDO SLASH /farmar (ALTERADO: CAPTURA O CANAL ATUAL)
