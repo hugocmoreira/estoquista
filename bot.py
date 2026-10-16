@@ -145,10 +145,8 @@ class FarmSelectView(discord.ui.View):
             discord.SelectOption(label="Placa de Colete", description="Placas balísticas de proteção", emoji="🛡️", value="Placa de Colete"),
         ]
     )
-    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select) -> None:
-        # CORREÇÃO AQUI: Adicionado o [0] para pegar a string dentro da lista
-        item_escolhido = select.values[0] 
-        
+       async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select) -> None:
+        item_escolhido = select.values[0]
         icones = {"Ferro": "⛏️", "Sabão": "🧼", "Tecido": "🧵", "Placa de Colete": "🛡️"}
         emoji = icones.get(item_escolhido, "📦")
         
@@ -158,7 +156,16 @@ class FarmSelectView(discord.ui.View):
             item_escolhido=item_escolhido,
             emoji_item=emoji
         )
+        
+        # CORREÇÃO AQUI: Abre o modal para o usuário
         await interaction.response.send_modal(modal)
+        
+        # APÓS ENVIAR O MODAL: Atualiza a mensagem ephemeral do menu, limpando-a
+        await interaction.edit_original_response(
+            content="⏳ *Formulário aberto! Preencha os dados na janela que apareceu na sua tela.*", 
+            view=None
+        )
+
 
 
 # =============================================================================
