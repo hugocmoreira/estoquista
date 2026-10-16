@@ -81,21 +81,26 @@ class FarmModal(discord.ui.Modal):
             qtd_digitada = self.quantidade.value.strip()
             obs_texto = self.observacoes.value.strip() if self.observacoes.value else "Nenhuma observação informada."
 
+                       # Texto limpo, organizado e padronizado na descrição
+            texto_formatado = (
+                f"Registro formalizado pelo membro {interaction.user.mention}.\n\n"
+                f"{self.emoji_item} **Item Farmado:** _{self.item_escolhido}_\n"
+                f"🛒 **Quantidade:** _{qtd_digitada} un._\n"
+                f"📅 **Horário:** <t:{int(interaction.created_at.timestamp())}:F>\n\n"
+                f"📝 **Observações:**\n_{obs_texto}_"
+            )
+
             embed = discord.Embed(
                 title="📦 Novo Registro de Farm Recebido",
-                description=f"Registro formalizado pelo membro {interaction.user.mention}.",
+                description=texto_formatado,
                 color=discord.Color.green(),
                 timestamp=interaction.created_at
             )
 
-            embed.add_field(name=f"{self.emoji_item} Item Farmado", value=f"**{self.item_escolhido}**", inline=False)
-            embed.add_field(name="🛒 Quantidade", value=f"**{qtd_digitada} un.**", inline=False)
-            embed.add_field(name="📅 Horário", value=f"<t:{int(interaction.created_at.timestamp())}:F>", inline=False)
-            embed.add_field(name="📝 Observações", value=f"_{obs_texto}_", inline=False)
-
             avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
             embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
-            embed.set_footer(text="FarmBot • Sistema de Gestão de Farm")
+            embed.set_footer(text="Estoquista • Sistema de Gestão de Farm")
+
 
             # Envia a embed pública no canal onde o comando foi digitado
             await canal.send(embed=embed)
