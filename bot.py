@@ -140,11 +140,12 @@ class FarmSelectView(discord.ui.View):
         ]
     )
     async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select) -> None:
-        item_escolhido = select.values[0]
+        # CORREÇÃO AQUI: Adicionado o [0] para pegar a string dentro da lista
+        item_escolhido = select.values[0] 
+        
         icones = {"Ferro": "⛏️", "Sabão": "🧼", "Tecido": "🧵", "Placa de Colete": "🛡️"}
         emoji = icones.get(item_escolhido, "📦")
         
-        # Repassa o canal dinâmico capturado para o Modal
         modal = FarmModal(
             bot_instance=self.bot,
             canal_id=self.canal_id,
@@ -152,6 +153,7 @@ class FarmSelectView(discord.ui.View):
             emoji_item=emoji
         )
         await interaction.response.send_modal(modal)
+
 
 # =============================================================================
 # 5. CONFIGURAÇÃO DO BOT COM SINCRONIZAÇÃO INSTANTÂNEA
