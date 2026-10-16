@@ -58,7 +58,7 @@ class FarmModal(discord.ui.Modal):
     )
     observacoes = discord.ui.TextInput(
         label="Observações (Opcional)",
-        placeholder="Ex: Print enviado abaixo. / VOu postar o print amanhã.",
+        placeholder="Ex: Print enviado abaixo. / Vou postar o print amanhã.",
         style=discord.TextStyle.paragraph,
         max_length=300,
         required=False
