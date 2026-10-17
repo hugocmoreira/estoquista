@@ -82,7 +82,7 @@ class FarmModal(discord.ui.Modal):
             qtd_digitada = self.quantidade.value.strip()
             obs_texto = self.observacoes.value.strip() if self.observacoes.value else "Nenhuma observação informada."
 
-                       # Texto limpo, organizado e padronizado na descrição
+            # Texto limpo, organizado e padronizado na descrição
             texto_formatado = (
                 f"Registro formalizado pelo membro {interaction.user.mention}.\n\n"
                 f"{self.emoji_item} **Item Farmado:** _{self.item_escolhido}_\n"
@@ -157,7 +157,7 @@ class FarmSelectView(discord.ui.View):
             emoji_item=emoji
         )
         
-        # CORREÇÃO AQUI: Abre o modal para o usuário
+        # Abre o modal para o usuário
         await interaction.response.send_modal(modal)
         
         # APÓS ENVIAR O MODAL: Atualiza a mensagem ephemeral do menu, limpando-a
@@ -167,12 +167,12 @@ class FarmSelectView(discord.ui.View):
         )
 
 
-
 # =============================================================================
 # 5. CONFIGURAÇÃO DO BOT COM SINCRONIZAÇÃO INSTANTÂNEA
 # =============================================================================
 intents = discord.Intents.default()
 intents.guilds = True
+intents.message_content = True  # CORREÇÃO AQUI: Ativa a intenção de ler o conteúdo das mensagens!
 
 class FarmBot(commands.Bot):
     def __init__(self) -> None:
@@ -186,215 +186,22 @@ class FarmBot(commands.Bot):
         await self.tree.sync()
 
     async def on_ready(self) -> None:
+        print(f"[BOT] Conectado com sucesso como {self.user}!", flush=True)
+        # Código finalizado que estava cortado no seu envio:
         for guild in self.guilds:
             try:
-                self.tree.copy_global_to(guild=guild)
-                await self.tree.sync(guild=guild)
-                print(f"[DISCORD] Comandos sincronizados em: {guild.name}", flush=True)
+                await self.tree.sync(guild=discord.Object(id=guild.id))
             except Exception as e:
-                print(f"[DISCORD] Erro ao sincronizar em {guild.name}: {e}", flush=True)
-        print(f"[DISCORD] Bot online com sucesso como: {self.user} (ID: {self.user.id})", flush=True)
+                print(f"[ERRO SYNC] Não foi possível sincronizar na guilda {guild.id}: {e}", flush=True)
 
+# Instancia e roda o Bot
 bot = FarmBot()
-# =============================================================================
-# MODAL MANUAL CORRIGIDO (ESTRUTURA DE PARÂMETROS BLINDADA)
-# =============================================================================
-class RegistrarManualModal(discord.ui.Modal):
-    item_manual = discord.ui.TextInput(
-        label="Nome do Item Farmado",
-        placeholder="Ex: Ferro, Sabão, Metanfetamina...",
-        style=discord.TextStyle.short,
-        min_length=2,
-        max_length=50,
-        required=True
-    )
-    
-    quantidade = discord.ui.TextInput(
-        label="Quantidade Entregue",
-        placeholder="Ex: 100 (digite apenas números)",
-        style=discord.TextStyle.short,
-        min_length=1,
-        max_length=10,
-        required=True
-    )
-    
-    observacoes = discord.ui.TextInput(
-        label="Observações (Opcional)",
-        placeholder="Ex: Entregue no cofre principal",
-        style=discord.TextStyle.paragraph,
-        max_length=300,
-        required=False
-    )
 
-    # CORREÇÃO: Definido title direto no super() para evitar falha de carregamento da API
-    def __init__(self, bot_instance: commands.Bot, canal_id: int) -> None:
-        super().__init__(title="📋 Registro Manual de Farm")
-        self.bot = bot_instance
-        self.canal_id = canal_id
-
-    async def on_submit(self, interaction: discord.Interaction) -> None:
-        # Responde o gateway imediatamente para evitar timeout na interface
-        await interaction.response.defer(ephemeral=True)
-        try:
-            canal = self.bot.get_channel(self.canal_id)
-            if not canal:
-                canal = await self.bot.fetch_channel(self.canal_id)
-            
-            item_digitado = self.item_manual.value.strip().capitalize()
-            qtd_bruta = self.quantidade.value.strip()
-            obs_texto = self.observacoes.value.strip() if self.observacoes.value else "Nenhuma observação informada."
-
-            # Extração de segurança dos números
-            qtd_filtrada = "".join(caractere for caractere in qtd_bruta if caractere.isdigit())
-            if not qtd_filtrada:
-                qtd_filtrada = "0"
-
-            # Formatação idêntica para manter a compatibilidade com o /consolidar
-            texto_formatado = (
-                f"Registro formalizado pelo membro {interaction.user.mention}.\n\n"
-                f"**Item Farmado:** _{item_digitado}_\n"
-                f"**Quantidade:** _{int(qtd_filtrada)} un._\n"
-                f"📅 **Horário:** <t:{int(interaction.created_at.timestamp())}:F>\n\n"
-                f"📝 **Observações:**\n_{obs_texto}_"
-            )
-
-            embed = discord.Embed(
-                title="📦 Novo Registro de Farm Recebido",
-                description=texto_formatado,
-                color=discord.Color.dark_green(),
-                timestamp=interaction.created_at
-            )
-
-            avatar_url = interaction.user.display_avatar.url if interaction.user.display_avatar else None
-            embed.set_author(name=interaction.user.display_name, icon_url=avatar_url)
-            embed.set_footer(text="FarmBot • Sistema de Gestão de Farm")
-
-            await canal.send(embed=embed)
-
-            await interaction.followup.send(
-                f"✅ **Seu registro manual foi postado com sucesso!**\n"
-                f"• Item: **{item_digitado}**\n"
-                f"• Quantidade: **{int(qtd_filtrada)} un.**\n"
-                f"• Canal: {canal.mention}", 
-                ephemeral=True
-            )
-            print(f"[MANUAL] Farm de {item_digitado} postado em #{canal.name}", flush=True)
-        except discord.Forbidden:
-            await interaction.followup.send("❌ **Erro:** O bot não tem permissão para postar neste canal.", ephemeral=True)
-        except Exception as e:
-            traceback.print_exc()
-            await interaction.followup.send(f"❌ Erro inesperado: {str(e)}", ephemeral=True)
-
-# =============================================================================
-# COMANDO SLASH /registrar CORRIGIDO (REPASSANDO OS ARGUMENTOS CORRETOS)
-# =============================================================================
-@bot.tree.command(name="registrar", description="Abre o formulário manual para digitar o item e a quantidade.")
-async def registrar(interaction: discord.Interaction) -> None:
-    # CORREÇÃO: Certifique-se de que os argumentos batem exatamente com o __init__ do modal acima!
-    modal = RegistrarManualModal(bot_instance=bot, canal_id=interaction.channel_id)
-    await interaction.response.send_modal(modal)
-
-
-#==============================================
-#novo comando Consolidar
-#===============================================
-
-@bot.tree.command(name="consolidar", description="Lê o histórico do canal e soma o total entregue por item.")
-@app_commands.default_permissions(administrator=True)
-async def consolidar(interaction: discord.Interaction) -> None:
-    await interaction.response.defer(ephemeral=False)
-    
-    totais = {
-        "Ferro": 0,
-        "Sabão": 0,
-        "Tecido": 0,
-        "Placa de Colete": 0
-    }
-    
-    regex_item = r"\*\*Item Farmado:\*\* _([^_]+)_"
-    regex_qtd = r"\*\*Quantidade:\*\* _(\d+)\s*un\._"
-    
-    mensagens_analisadas = 0
-    registros_encontrados = 0
-
-    try:
-        async for mensagem in interaction.channel.history(limit=500):
-            mensagens_analisadas += 1
-            
-            if mensagem.author.bot and mensagem.embeds:
-                message_embeds = mensagem.embeds
-                for embed in message_embeds:
-                    # CORREÇÃO AQUI: Garante que a embed tem o título correto e possui descrição
-                    if embed.title == "📦 Novo Registro de Farm Recebido" and embed.description:
-                        desc = embed.description
-                        
-                        # O localizador RE agora roda estritamente seguro aqui dentro
-                        match_item = re.search(regex_item, desc)
-                        match_qtd = re.search(regex_qtd, desc)
-                        
-                        if match_item and match_qtd:
-                            item = match_item.group(1).strip()
-                            qtd = int(match_qtd.group(1))
-                            
-                            if item in totais:
-                                totais[item] += qtd
-                                registros_encontrados += 1
-                            else:
-                                totais[item] = totais.get(item, 0) + qtd
-                                registros_encontrados += 1
-
-        icones = {"Ferro": "⛏️", "Sabão": "🧼", "Tecido": "🧵", "Placa de Colete": "🛡️"}
-        
-        texto_relatorio = "📊 **Fechamento de Estoque — Total por Item**\n"
-        texto_relatorio += f"_Analisadas {mensagens_analisadas} mensagens. {registros_encontrados} registros de farm contabilizados._\n\n"
-        
-        for item, total in totais.items():
-            emoji = icones.get(item, "📦")
-            texto_relatorio += f"{emoji} **{item}:** _{total} un._\n"
-
-        embed_resultado = discord.Embed(
-            title="✅ Consolidação de Farm Concluída",
-            description=texto_relatorio,
-            color=discord.Color.blue(),
-            timestamp=interaction.created_at
-        )
-        embed_resultado.set_footer(text="Estoquista • Balanço Automatizado")
-
-        await interaction.followup.send(embed=embed_resultado)
-
-    except discord.Forbidden:
-        await interaction.followup.send("❌ **Erro:** O bot precisa da permissão 'Ver Histórico de Mensagens' para ler este canal.", ephemeral=True)
-    except Exception as e:
-        traceback.print_exc()
-        await interaction.followup.send(f"❌ Erro ao consolidar dados: {str(e)}", ephemeral=True)
-
-
-
-# =============================================================================
-# 6. COMANDO SLASH /farmar (ALTERADO: CAPTURA O CANAL ATUAL)
-# =============================================================================
-@bot.tree.command(name="farmar", description="Abre o menu de seleção para registrar entrega de farm.")
-async def farmar(interaction: discord.Interaction) -> None:
-    # Passamos interaction.channel_id dinamicamente para a View externa
+@bot.tree.command(name="farmar", description="Abre o menu para registrar o seu farm.")
+async def farmar(interaction: discord.Interaction):
+    # Envia o menu dropdown de forma privada (ephemeral) para quem usou o comando
     view = FarmSelectView(bot_instance=bot, canal_id=interaction.channel_id)
-    await interaction.response.send_message(
-        "📦 **Selecione abaixo o item que você entregou:**",
-        view=view,
-        ephemeral=True
-    )
-
-@bot.tree.error
-async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError) -> None:
-    print(f"[ERRO COMANDO] {error}", flush=True)
-    traceback.print_exc()
-    try:
-        if interaction.response.is_done():
-            await interaction.followup.send(f"❌ Erro no comando: {error}", ephemeral=True)
-        else:
-            await interaction.response.send_message(f"❌ Erro no comando: {error}", ephemeral=True)
-    except Exception:
-        pass
+    await interaction.response.send_message("📋 **Menu de Registro de Farm:**", view=view, ephemeral=True)
 
 if __name__ == "__main__":
-    print("[DISCORD] Conectando ao gateway do Discord...", flush=True)
     bot.run(DISCORD_TOKEN)
